@@ -18,16 +18,30 @@ from utils import shrink_bbox
 
 
 class ObjectDetection():
-    def __init__(self, config, detector_descriptor, matcher, to_gray: bool=False):
+    def __init__(self, config, to_gray: bool=False):
+        """
+        Initializes the object detection class
+
+        Parameters
+        ----------
+        config : object
+            Contains the configuration for the class.
+        to_gray : bool, optional
+            If true converts images to gray else keeps
+            them in original format, by default False
+        """
         self.config = config
         self.to_gray = to_gray
-        self.detector_descriptor = detector_descriptor
-        self.matcher = matcher
+        self.detector_descriptor = config.detector_descriptor
+        self.matcher = config.matcher
+        
+        # Holds all the information i.e. keypoints,  
+        # descriptors, and dimension, for object detection.
         self.query_object_features = {}
 
         # Retrieves all the image feature info needed
         # for each of the object for detection
-        self.init_object_feat(self.config.objects, self.config.object_path)
+        self.extract_object_feat(self.config.objects, self.config.object_path)
         
         # Set frame rate
         self.frame_rate = 2
@@ -49,9 +63,21 @@ class ObjectDetection():
                              self.callback)
             r.sleep()
     
-    def init_object_feat(self, objects, obj_path):
+    def extract_object_feat(self, objects, obj_path):
+        """
+        Extracts all the information and features needed for
+        object detection.
+
+        Parameters
+        ----------
+        objects : list | String
+            List of object names.
+        obj_path : String
+            Path to the folder containing object images.
+        """
         # Image extensions that are supported
         supported_formats = ['jpg', 'jpeg', 'png']
+        
         if objects is 'all':
             image_files = [join(obj_path, f) for f in listdir(obj_path) if f.endswith(('.jpg', '.png'))]
         else:
@@ -85,8 +111,16 @@ class ObjectDetection():
             except:
                 rospy.loginfo(f'Image couldn\'t be red at: \n {im_file}')   
                 
-    def callback(self, kinect_image):
-        image = np.frombuffer(kinect_image.data, dtype=np.uint8).reshape(kinect_image.height, kinect_image.width, -1)
+    def callback(self, sensor_image):
+        """
+        Callback function for the object detection node
+
+        Parameters
+        ----------
+        sensor_image : ndarray
+            Image retrieved from a sensor (webcam/kinect).
+        """
+        image = np.frombuffer(sensor_image.data, dtype=np.uint8).reshape(sensor_image.height, sensor_image.width, -1)
         if image is None:
             rospy.loginfo('invalid image received')
             return
@@ -94,21 +128,37 @@ class ObjectDetection():
         time_elapsed = time.time() - self.prev
         if time_elapsed > 1. / self.frame_rate:
             self.prev = time.time()
-            for object_name, kp_des in self.query_object_features.items():
-                self.detect(object_name, kp_des, image)
+            for object_name, feat in self.query_object_features.items():
+                self.detect(object_name, feat, image)
 
             # Convert the dictionary to string
             self.obj_boundary_msg = json.dumps(self.obj_boundary_info)
             self.obj_boundary_pub.publish(self.obj_boundary_msg)
 
-    def detect(self, object_name, query_kp_des, kinect_im, show_image=True):
+    def detect(self, object_name, query_img_feat, sensor_image, show_image=True):
+        """
+        Detects if the object is in the frame
+
+        Parameters
+        ----------
+        object_name : String
+            Name of the object.
+        query_img_feat : list
+            A list containing keypoints, descriptors, and 
+            dimension information of query object's image
+        sensor_image : ndarray
+            Image retrieved from a sensor (webcam/kinect).
+        show_image : bool, optional
+            If True the frame with detected object will 
+            be showed, by default True
+        """
         MIN_MATCH_COUNT = 10
         if self.to_gray:
-            kinect_rgb = kinect_im
-            kinect_im = cv2.cvtColor(kinect_im, cv2.COLOR_BGR2GRAY)
+            sensor_rgb = sensor_image
+            sensor_image = cv2.cvtColor(sensor_image, cv2.COLOR_BGR2GRAY)
 
-        kp1, des1, dim = query_kp_des
-        kp2, des2 = self.detector_descriptor.detectAndCompute(kinect_im, None)
+        kp1, des1, dim = query_img_feat
+        kp2, des2 = self.detector_descriptor.detectAndCompute(sensor_image, None)
 
         matches = self.matcher(des1, des2, **self.config.matcher_kwargs)
         # store all the good matches as per Lowe's ratio test.
@@ -132,9 +182,9 @@ class ObjectDetection():
             self.obj_boundary_info[object_name] = np.squeeze(dst, axis=1).tolist()
             if show_image:
                 if self.to_gray:
-                    result = cv2.polylines(kinect_rgb, [dst] ,True,255,1, cv2.LINE_AA)
+                    result = cv2.polylines(sensor_rgb, [dst] ,True,255,1, cv2.LINE_AA)
                 else:
-                    result = cv2.polylines(kinect_im, [dst] ,True,255,1, cv2.LINE_AA)
+                    result = cv2.polylines(sensor_image, [dst] ,True,255,1, cv2.LINE_AA)
                 cv2.imshow('Detected Objects', result)
                 cv2.waitKey(10)
         else:
@@ -145,7 +195,4 @@ class ObjectDetection():
         
 
 if __name__ == '__main__':
-    ObjectDetection(config=config, 
-                    detector_descriptor=config.detector_descriptor, 
-                    matcher=config.matcher, 
-                    to_gray=True)
+    ObjectDetection(config=config)

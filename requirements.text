@@ -2,4 +2,3 @@ rospy
 numpy
 python-opencv
 python-opencv-contrib
-json

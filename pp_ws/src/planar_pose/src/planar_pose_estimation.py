@@ -24,6 +24,14 @@ from geometry_msgs.msg import PoseStamped, PoseArray, Pose
 
 class PlanarPoseEstimation():
     def __init__(self, config):
+        """
+        Generates poses for detected objects.
+
+        Parameters
+        ----------
+        config : object
+            Contains the configuration for the class.
+        """
         self.config = config
         self.frame_id = self.config.frame_id
         # Initializes ros node for planar pose estimation 
@@ -96,17 +104,19 @@ class PlanarPoseEstimation():
         """
         
         bbox = np.array(bbox)
+        
+        # Compute the center, the mid point of the right 
+        # and top segment of the bounding box  
         c = (bbox[0] + bbox[2]) // 2
         x = (bbox[2] + bbox[3]) // 2
         y = (bbox[0] + bbox[3]) // 2
         
-        # center = [(bbox[0][0] + bbox[2][0]) // 2 , (bbox[0][1] + bbox[2][1]) // 2]
         points = np.array([c, x, y]).tolist()
-        print(points)
-        # print(bbox)
         vectors_3D = np.zeros((3,3))
         try:
+            # Get the corresponding 3D location of c, x, y
             for pt_count, dt in enumerate(pc2.read_points(pc_sub, field_names={'x','y','z'}, skip_nans=False, uvs=points)):
+                # If any point returns nan, return
                 if np.any(np.isnan(dt)):
                     if object_ in self.object_pose_info.keys():
                         del self.object_pose_info[object_] 
@@ -120,26 +130,34 @@ class PlanarPoseEstimation():
             rospy.loginfo(err)
             return
                 
+        # 3D position of the object
         c_3D = self.vectors_3D[0]
+
+        # Center the vectors to the origin
         x_vec = self.vectors_3D[1] - c_3D
         y_vec = self.vectors_3D[2] - c_3D
+        # Take the cross product of x and y vector
+        # to generate z vector.
         z_vec = np.cross(x_vec, y_vec)
+        # Recompute x vector to make it truly orthognal
         x_vec_orth = np.cross(y_vec, z_vec)
         
+        # Normalize the orthogonal axes 
         x_vec_orth = x_vec_orth / np.linalg.norm(x_vec_orth)
         y_vec = y_vec / np.linalg.norm(y_vec)
         z_vec = z_vec / np.linalg.norm(z_vec)
 
+        # Compute Euler angles i.e. roll, pitch, yaw
         roll = np.arctan2(y_vec[2], z_vec[2])
         pitch = np.arctan2(-x_vec_orth[2], np.sqrt(1 - x_vec_orth[2]**2))
         yaw = np.arctan2(x_vec_orth[1], x_vec_orth[0])
         
+        # Convert to quaternion
         [qx, qy, qz, qw] = self.euler_to_quaternion(roll, pitch, yaw)
         
+        # Generate Pose message.
         pose_msg = Pose()
         
-        # pose_msg.header.frame_id = self.frame_id
-        # pose_msg.header.stamp = rospy.Time.now()
         pose_msg.position.x = c_3D[0]
         pose_msg.position.y = c_3D[1]
         pose_msg.position.z = c_3D[2]
@@ -149,12 +167,29 @@ class PlanarPoseEstimation():
         pose_msg.orientation.z = qz
         pose_msg.orientation.w = qw
         
+        # Store/update the pose information.
         self.object_pose_info[object_] = {'position': c_3D.tolist(), 'orientation': [qx, qy, qz, qw]}
         
         return pose_msg
-            # vectors_3D[pt_count]
             
     def euler_to_quaternion(self, roll: float, pitch: float, yaw:float):
+        """
+        Converts euler angles to quaternion
+
+        Parameters
+        ----------
+        roll : float
+            Roll angle.
+        pitch : float
+            Pitch angle.
+        yaw : float
+            Yaw angle.
+
+        Returns
+        -------
+        [type]
+            [description]
+        """
 
         qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
         qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
@@ -162,5 +197,6 @@ class PlanarPoseEstimation():
         qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
 
         return [qx, qy, qz, qw]
+    
 if __name__ == "__main__":
     PlanarPoseEstimation(config=config)
