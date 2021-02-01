@@ -1,4 +1,5 @@
 rospy
+catkin_pkg
 numpy
 sympy
 opencv-python  
