@@ -1,0 +1,36 @@
+language: python
+sudo: required
+
+jobs:
+  include:
+    - name: noetic
+      os: linux
+      dist: focal
+      arch: amd64
+      before_install:
+        - wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
+        - bash miniconda.sh -b -p $HOME/miniconda3
+        - source "$HOME/miniconda3/etc/profile.d/conda.sh"
+        - hash -r
+        - conda config --set always_yes yes --set changeps1 no
+        - export PATH=~/miniconda3/bin:$PATH
+        - conda create -n  cv37 python=3.7
+        - source activate cv37
+      install:
+        - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+        - sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+        - sudo apt update
+        - sudo apt install ros-noetic-ros-base
+      before_script:
+        - source /opt/ros/noetic/setup.bash
+        - sudo apt install python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
+        - sudo apt install python3-rosdep
+        - sudo rosdep init
+        - rosdep update
+      script:
+        - mkdir -p ~/catkin_ws/src
+        - cd ~/catkin_ws/src
+        - git clone https://github.com/paul-shuvo/planar_pose.git
+        - pip install -r planar_pose/requirements.txt
+        - cd ~/catkin_ws/
+        - catkin_make
