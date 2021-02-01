@@ -16,6 +16,7 @@ jobs:
         - export PATH=~/miniconda3/bin:$PATH
         - conda create -n  cv37 python=3.7
         - source activate cv37
+        - export PYTHONPATH="~/miniconda3/envs/pt37/bin/python:${PYTHONPATH}"
       install:
         - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
         - sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
