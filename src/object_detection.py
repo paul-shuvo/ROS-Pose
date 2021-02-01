@@ -63,16 +63,16 @@ class ObjectDetection():
                              self.callback)
             r.sleep()
     
-    def extract_object_feat(self, objects, obj_path):
+    def extract_object_feat(self, objects, obj_path: str):
         """
         Extracts all the information and features needed for
         object detection.
 
         Parameters
         ----------
-        objects : list | String
+        objects : list | str
             List of object names.
-        obj_path : String
+        obj_path : str
             Path to the folder containing object images.
         """
         # Image extensions that are supported
@@ -111,13 +111,13 @@ class ObjectDetection():
             except:
                 rospy.loginfo(f'Image couldn\'t be red at: \n {im_file}')   
                 
-    def callback(self, sensor_image):
+    def callback(self, sensor_image: np.ndarray):
         """
         Callback function for the object detection node
 
         Parameters
         ----------
-        sensor_image : ndarray
+        sensor_image : numpy.ndarray
             Image retrieved from a sensor (webcam/kinect).
         """
         image = np.frombuffer(sensor_image.data, dtype=np.uint8).reshape(sensor_image.height, sensor_image.width, -1)
@@ -135,18 +135,18 @@ class ObjectDetection():
             self.obj_boundary_msg = json.dumps(self.obj_boundary_info)
             self.obj_boundary_pub.publish(self.obj_boundary_msg)
 
-    def detect(self, object_name, query_img_feat, sensor_image, show_image=True):
+    def detect(self, object_name: str, query_img_feat: list, sensor_image: np.ndarray, show_image: bool=True):
         """
         Detects if the object is in the frame
 
         Parameters
         ----------
-        object_name : String
+        object_name : str
             Name of the object.
         query_img_feat : list
             A list containing keypoints, descriptors, and 
             dimension information of query object's image
-        sensor_image : ndarray
+        sensor_image : numpy.ndarray
             Image retrieved from a sensor (webcam/kinect).
         show_image : bool, optional
             If True the frame with detected object will 

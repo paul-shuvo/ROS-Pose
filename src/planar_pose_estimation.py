@@ -11,6 +11,11 @@ import config
 dir_path = dirname(abspath(__file__))
 chdir(dir_path)
 
+# Except warnings as errors
+import warnings
+warnings.filterwarnings("error")
+
+
 # ROS imports
 import rospy
 from std_msgs.msg import String
@@ -58,13 +63,13 @@ class PlanarPoseEstimation():
         ts.registerCallback(self.callback)
         rospy.spin()
             
-    def callback(self, object_detection_sub: String, pc_sub: PointCloud2):
+    def callback(self, object_detection_sub: str, pc_sub: PointCloud2):
         """
         Callback function for the planar pose estimation node
 
         Parameters
         ----------
-        object_detection_sub : String
+        object_detection_sub : str
             A json string containing the information of the 
             bounding boxes of the detected objects
         pc_sub : PointCloud2
@@ -88,13 +93,15 @@ class PlanarPoseEstimation():
         self.pose_array.header.stamp = rospy.Time.now()
         self.pose_array_pub.publish(self.pose_array)
         
-    def estimate_pose(self, object_: String, bbox: list, pc_sub: PointCloud2):
+    def estimate_pose(self, object_: str, bbox: list, pc_sub: PointCloud2):
         """
         Estimates planar pose of detected objects and 
         updates the stored pose.
 
         Parameters
         ----------
+        object_: str
+            Name of the object.
         bbox : list
             Contains the coordinates of the bounding box
             of the detected object.
@@ -143,9 +150,13 @@ class PlanarPoseEstimation():
         x_vec_orth = np.cross(y_vec, z_vec)
         
         # Normalize the orthogonal axes 
-        x_vec_orth = x_vec_orth / np.linalg.norm(x_vec_orth)
-        y_vec = y_vec / np.linalg.norm(y_vec)
-        z_vec = z_vec / np.linalg.norm(z_vec)
+        try:
+            x_vec_orth = x_vec_orth / np.linalg.norm(x_vec_orth)
+            y_vec = y_vec / np.linalg.norm(y_vec)
+            z_vec = z_vec / np.linalg.norm(z_vec)
+        except RuntimeWarning as w:
+            rospy.loginfo(w)
+            return
 
         # Compute Euler angles i.e. roll, pitch, yaw
         roll = np.arctan2(y_vec[2], z_vec[2])

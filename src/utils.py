@@ -80,9 +80,11 @@ def shrink_bbox(bbox_cor, shrink_val: int=0.9) -> np.ndarray:
     bbox_cor : list | np.ndarray
         Coordinates of the bounding box.
     shrink_val : int, optional
-        Shrinking ratio of the bbox, by default 0.75
-            
-        .. note:: If the `shrink_val` is more than 1.0,
+        Shrinking ratio of the bbox, by default 0.75  
+    
+        Notes
+        -----
+        If the `shrink_val` is more than 1.0,
         the bbox will expand.
 
     Returns
@@ -95,7 +97,9 @@ def shrink_bbox(bbox_cor, shrink_val: int=0.9) -> np.ndarray:
     TypeError
         If the type of `bbox_cor` is not list or np.ndarray
     
-    .. warning:: This method yields in longer run time. For example,
+    Warning
+    -------
+    This method yields in longer run time. For example,
     if detecting through `sift` and `flann` based matcher takes ~0.05s,
     this function takes ~0.75s. Use this function if you need to use it
     once.
