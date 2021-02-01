@@ -1,4 +1,4 @@
 rospy
 numpy
-python-opencv
-python-opencv-contrib
+opencv-python
+opencv-contrib-python

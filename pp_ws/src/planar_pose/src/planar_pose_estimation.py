@@ -187,8 +187,8 @@ class PlanarPoseEstimation():
 
         Returns
         -------
-        [type]
-            [description]
+        list
+            Converted Quaternion values.
         """
 
         qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
