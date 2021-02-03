@@ -152,7 +152,7 @@ class ObjectDetection():
             If True the frame with detected object will 
             be showed, by default True
         """
-        MIN_MATCH_COUNT = 10
+        MIN_MATCH_COUNT = self.config.min_match_count
         if self.to_gray:
             sensor_rgb = sensor_image
             sensor_image = cv2.cvtColor(sensor_image, cv2.COLOR_BGR2GRAY)

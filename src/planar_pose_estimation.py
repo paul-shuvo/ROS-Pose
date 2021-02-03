@@ -2,9 +2,12 @@
 from os.path import dirname, abspath
 from os import chdir
 import numpy as np
+from numpy.linalg import norm
+from numpy.core.arrayprint import dtype_is_implied
 import message_filters
 import struct
 import json
+import cv2
 import config
 
 # Change directory to the file directory
@@ -20,6 +23,7 @@ warnings.filterwarnings("error")
 import rospy
 from std_msgs.msg import String
 import sensor_msgs.point_cloud2 as pc2
+from image_geometry import PinholeCameraModel
 
 # from arm_pose.msg import Floats
 from sensor_msgs.msg import PointCloud2, Image
@@ -39,6 +43,7 @@ class PlanarPoseEstimation():
         """
         self.config = config
         self.frame_id = self.config.frame_id
+        self.viz_pose = config.viz_pose
         # Initializes ros node for planar pose estimation 
         rospy.init_node('planar_pose_estimation', anonymous=False)
         # Pose info gets published both as a `String` and
@@ -56,14 +61,25 @@ class PlanarPoseEstimation():
         self.object_detection_sub = message_filters.Subscriber('/detected_object', String)
         self.pc_sub = message_filters.Subscriber(self.config.pc_sub['topic'], 
                                                  self.config.pc_sub['type'])
+        self.image_sub = message_filters.Subscriber(self.config.image_sub['topic'], 
+                                                    self.config.image_sub['type'])
+
+        if self.viz_pose:
+            self.viz_frame = None
+            camera_info = rospy.wait_for_message(self.config.cam_info_sub['topic'], 
+                                                 self.config.cam_info_sub['type'])
+            self.P = np.array(camera_info.P).reshape((3, 4))
+
+
 
         ts = message_filters.ApproximateTimeSynchronizer([self.object_detection_sub, 
-                                                          self.pc_sub], 10, 1, allow_headerless=True) # Changed code
+                                                          self.pc_sub, self.image_sub], 
+                                                          10, 1, allow_headerless=True)
         
         ts.registerCallback(self.callback)
         rospy.spin()
             
-    def callback(self, object_detection_sub: str, pc_sub: PointCloud2):
+    def callback(self, object_detection_sub: str, pc_sub: PointCloud2, image_sub: Image):
         """
         Callback function for the planar pose estimation node
 
@@ -76,6 +92,9 @@ class PlanarPoseEstimation():
             A pointcloud object containing the 3D locations
             in terms of the frame `self.frame_id`
         """
+        if self.viz_pose:
+            self.viz_frame = np.frombuffer(image_sub.data, dtype=np.uint8).reshape(image_sub.height, image_sub.width, -1)
+
         self.pose_array.header.frame_id = self.frame_id
         
         detected_object = json.loads(object_detection_sub.data)
@@ -151,13 +170,17 @@ class PlanarPoseEstimation():
         
         # Normalize the orthogonal axes 
         try:
-            x_vec_orth = x_vec_orth / np.linalg.norm(x_vec_orth)
-            y_vec = y_vec / np.linalg.norm(y_vec)
-            z_vec = z_vec / np.linalg.norm(z_vec)
+            x_vec_orth = x_vec_orth / norm(x_vec_orth)
+            y_vec = y_vec / norm(y_vec)
+            z_vec = z_vec / norm(z_vec)
         except RuntimeWarning as w:
             rospy.loginfo(w)
             return
-
+        
+        if self.viz_pose:
+            # self.draw_pose(object_, self.vectors_3D)
+            self.draw_pose(object_, np.vstack((self.vectors_3D, z_vec)))
+        
         # Compute Euler angles i.e. roll, pitch, yaw
         roll = np.arctan2(y_vec[2], z_vec[2])
         pitch = np.arctan2(-x_vec_orth[2], np.sqrt(1 - x_vec_orth[2]**2))
@@ -182,7 +205,81 @@ class PlanarPoseEstimation():
         self.object_pose_info[object_] = {'position': c_3D.tolist(), 'orientation': [qx, qy, qz, qw]}
         
         return pose_msg
+    
+    def draw_pose(self, object_, vectors_3D):
+        # assert len(vectors_3D) == 3, 'vectors_3D should have 4 vectors'
+        c, x, y, z = vectors_3D
+        # z = norm(z)/norm(vectors_3D)
+        print(z)
+        print(norm(z))
+
+        p_image = np.zeros((4,2), dtype=np.int32)
+        coordinates = None
+        for i, vec in enumerate(vectors_3D):
+            coordinates = self.project3dToPixel(vec)
+            if coordinates.any() is None:
+                break
+            print(f'pixel is: {coordinates}')
+            p_image[i]= coordinates
+        
+        if coordinates is not None:
+            # p_image[3] = tuple([2*i-j for i,j in zip(p_image[0], p_image[3])])
+            p_image[3] = 2*p_image[0] - p_image[3]
+            # z = c + (z-c)*(norm(x-c)/norm(z-c))
+            p_image[3] = p_image[0] + (p_image[3] - p_image[0])*(norm(p_image[1] - p_image[0])/norm(p_image[3] - p_image[0]))
+            colors_ = [(255,0,0),(0,255,0),(0,0,255)]
+            for i in range(1,4):
+                cv2.line(self.viz_frame, tuple(p_image[0]), tuple(p_image[i]), colors_[i-1], thickness=2)
+                # cv2.line(self.viz_frame, p_image[0], p_image[2], (0, 255, 0), thickness=2)
+                # cv2.line(self.viz_frame, p_image[0], p_image[3], (0, 0, 255), thickness=2)
+                x1, y1, x2, y2 = self.calc_vertexes(p_image[0], p_image[i])
+                cv2.line(self.viz_frame, tuple(p_image[i]), (x1, y1), colors_[i-1], thickness=2)
+                cv2.line(self.viz_frame, tuple(p_image[i]), (x2, y2), colors_[i-1], thickness=2)
+            text_loc = (int(p_image[2][0] - ((p_image[1][0] - p_image[0][0]) / 2)), p_image[2][1])
+            text_loc = np.array([p_image[2,0] - (p_image[1,0] - p_image[0,0])/2, p_image[2,1]], dtype=np.int16)
+            cv2.putText(self.viz_frame,
+                        object_, 
+                        tuple(text_loc), 
+                        cv2.FONT_HERSHEY_PLAIN, 
+                        1,
+                        (127,255,200),
+                        2)
+
+                
+            cv2.imshow('Pose', self.viz_frame)
+            cv2.waitKey(10)
             
+            
+    def project3dToPixel(self, point):
+        """
+
+        """
+        src = np.array([point[0], point[1], point[2], 1.0]).reshape(4,1)
+        dst = self.P @ src
+        x = dst[0,0]
+        y = dst[1,0]
+        w = dst[2,0]
+        if w != 0:
+            px = int(x/w)
+            py = int(y/w)
+            return np.array([px, py], dtype=np.int32)
+        else:
+            return None
+    
+    def calc_vertexes(self, start_cor, end_cor):
+        start_x, start_y = start_cor
+        end_x, end_y = end_cor
+        angle = np.arctan2(end_y - start_y, end_x - start_x) + np.pi
+        arrow_length = 15
+        arrow_degrees_ = 70
+
+        x1 = int(end_x + arrow_length * np.cos(angle - arrow_degrees_)) 
+        y1 = int(end_y + arrow_length * np.sin(angle - arrow_degrees_))
+        x2 = int(end_x + arrow_length * np.cos(angle + arrow_degrees_))
+        y2 = int(end_y + arrow_length * np.sin(angle + arrow_degrees_))
+
+        return x1, y1, x2, y2
+    
     def euler_to_quaternion(self, roll: float, pitch: float, yaw:float):
         """
         Converts euler angles to quaternion
