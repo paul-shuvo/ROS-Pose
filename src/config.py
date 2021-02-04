@@ -41,10 +41,6 @@ objects = ['book-1', 'chat']
 # Minimum match required for an object to be considered detected
 min_match_count = 15
 
-# Visualize the detected objects,
-# if set to True
-show_image = True
-
 # Define detector-descriptor and the 
 # matcher algortihm
 detector_descriptor = cv2.SIFT_create()
@@ -53,6 +49,10 @@ matcher = cv2.FlannBasedMatcher(dict(algorithm=1, trees=5),
 # If there's no kwargs for the matcher keep
 # it as an empty `dict` e.g. {}
 matcher_kwargs = {'k':2}
+
+# Visualize the detected objects,
+# if set to True
+show_image = True
 
 # Visualize the pose of the objects, 
 # if set to True

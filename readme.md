@@ -1,36 +1,17 @@
 # Planar Pose Estimation
+
 ---
 [![CodeFactor](https://www.codefactor.io/repository/github/paul-shuvo/planar_pose/badge)](https://www.codefactor.io/repository/github/paul-shuvo/planar_pose)
 [![Build Status](https://www.travis-ci.com/paul-shuvo/planar_pose.svg?branch=main)](https://www.travis-ci.com/paul-shuvo/planar_pose)
 
 ## Table of contents
-- [# Planar Pose Estimation](#-planar-pose-estimation)
-- [Table of contents](#table-of-contents)
-  - [Dependencies](#dependencies)
-  - [Install](#install)
-  - [Run](#run)
-  - [Topics](#topics)
-
-Notes:
-    error: File "/opt/ros/noetic/lib/python3/dist-packages/image_geometry/cameramodels.py", line 10, in mkmat
-    mat = numpy.matrix(L, dtype='float64')
-
-    change to numpy.array
-
-    Error in atexit._run_exitfuncs:
-Traceback (most recent call last):
-  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/core.py", line 615, in _ros_atexit
-    signal_shutdown('atexit')
-  File "/opt/ros/noetic/lib/python3/dist-packages/rospy/core.py", line 598, in signal_shutdown
-    if t.isAlive():
-
-    change it to t.is_alive
-
-    error File "/opt/ros/noetic/lib/python3/dist-packages/image_geometry/cameramodels.py", line 120, in project3dToPixel
-    dst = self.P * src
-ValueError: operands could not be broadcast together with shapes (3,4) (4,1) 
-
-changed to self.P @ src
+  - [Table of contents](#table-of-contents)
+    - [Dependencies](#dependencies)
+    - [Install](#install)
+    - [Run](#run)
+    - [Topics](#topics)
+    - [Demo](#demo)
+    - [Citation](#citation)
 
 ### Dependencies
 
@@ -133,3 +114,25 @@ rosrun planar_pose planar_pose_estimation.py
             w: 0.06553804229804013
     ---
     ```
+
+### Demo
+
+![](doc_/pose_viz.gif)
+
+(a),(b),(c) are recovered poses from robot’s camera and (d),(e),(f) are corresponding poses visualized in RViz
+
+![](doc_/cam_rviz.png)
+
+### Citation
+
+Please cite these papers in your publications if it helps your research:
+
+```bibtex
+@inproceedings{paul2020object,
+      title={Object Detection and Pose Estimation from RGB and Depth Data for Real-time, Adaptive Robotic Grasping}, 
+      author={S. K. Paul and M. T. Chowdhury and M. Nicolescu and M. Nicolescu},
+      booktitle={Proceedings of the International Conference on Image Processing, Computer Vision, and Pattern Recognition (IPCV)}
+      year={2020},    
+}
+```
+
