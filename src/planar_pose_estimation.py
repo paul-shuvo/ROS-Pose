@@ -9,6 +9,7 @@ import struct
 import json
 import cv2
 import config
+from utils import draw_angled_text
 
 # Change directory to the file directory
 dir_path = dirname(abspath(__file__))
@@ -29,7 +30,10 @@ from image_geometry import PinholeCameraModel
 from sensor_msgs.msg import PointCloud2, Image
 from geometry_msgs.msg import PoseStamped, PoseArray, Pose
 
-
+# TODO: Add doc for viz_pose
+# TODO: Add roatated text feature
+# TODO: Test the code more
+# FIX: The long blue axis 
 
 class PlanarPoseEstimation():
     def __init__(self, config):
@@ -48,17 +52,17 @@ class PlanarPoseEstimation():
         rospy.init_node('planar_pose_estimation', anonymous=False)
         # Pose info gets published both as a `String` and
         # as `PoseArray`.
-        self.pose_info_pub = rospy.Publisher('/object_pose_info', String, queue_size=10)
-        self.pose_array_pub = rospy.Publisher('/object_pose_array', PoseArray, queue_size=10)
+        self.pose_info_pub = rospy.Publisher('/object_namepose_info', String, queue_size=10)
+        self.pose_array_pub = rospy.Publisher('/object_namepose_array', PoseArray, queue_size=10)
         
-        self.object_pose_info = {}
+        self.object_namepose_info = {}
         self.pose_array = PoseArray()
         # `self.obj_pose_info` is converted to json string and
         # then set to `self.obj_pose_msg` which then gets published
         self.obj_pose_msg = ''
 
      
-        self.object_detection_sub = message_filters.Subscriber('/detected_object', String)
+        self.object_namedetection_sub = message_filters.Subscriber('/detected_object', String)
         self.pc_sub = message_filters.Subscriber(self.config.pc_sub['topic'], 
                                                  self.config.pc_sub['type'])
         self.image_sub = message_filters.Subscriber(self.config.image_sub['topic'], 
@@ -72,20 +76,20 @@ class PlanarPoseEstimation():
 
 
 
-        ts = message_filters.ApproximateTimeSynchronizer([self.object_detection_sub, 
+        ts = message_filters.ApproximateTimeSynchronizer([self.object_namedetection_sub, 
                                                           self.pc_sub, self.image_sub], 
                                                           10, 1, allow_headerless=True)
         
         ts.registerCallback(self.callback)
         rospy.spin()
             
-    def callback(self, object_detection_sub: str, pc_sub: PointCloud2, image_sub: Image):
+    def callback(self, object_namedetection_sub: str, pc_sub: PointCloud2, image_sub: Image):
         """
         Callback function for the planar pose estimation node
 
         Parameters
         ----------
-        object_detection_sub : str
+        object_namedetection_sub : str
             A json string containing the information of the 
             bounding boxes of the detected objects
         pc_sub : PointCloud2
@@ -97,29 +101,34 @@ class PlanarPoseEstimation():
 
         self.pose_array.header.frame_id = self.frame_id
         
-        detected_object = json.loads(object_detection_sub.data)
+        detected_object = json.loads(object_namedetection_sub.data)
         pose_array_msg = []
-        for object_, bbox in detected_object.items():
+        for object_name, bbox in detected_object.items():
             if bbox is not None:
-                pose_msg = self.estimate_pose(object_, bbox, pc_sub)
+                pose_msg = self.estimate_pose(object_name, bbox, pc_sub)
                 if pose_msg is not None:
                     pose_array_msg.append(pose_msg)
         
+        if self.viz_pose:
+            cv2.imshow('Pose', self.viz_frame)
+            cv2.waitKey(1)
+            
         self.pose_array.poses = pose_array_msg
         
-        self.obj_pose_msg = json.dumps(self.object_pose_info)
+        self.obj_pose_msg = json.dumps(self.object_namepose_info)
         self.pose_info_pub.publish(self.obj_pose_msg)
         self.pose_array.header.stamp = rospy.Time.now()
         self.pose_array_pub.publish(self.pose_array)
         
-    def estimate_pose(self, object_: str, bbox: list, pc_sub: PointCloud2):
+        
+    def estimate_pose(self, object_name: str, bbox: list, pc_sub: PointCloud2):
         """
         Estimates planar pose of detected objects and 
         updates the stored pose.
 
         Parameters
         ----------
-        object_: str
+        object_name: str
             Name of the object.
         bbox : list
             Contains the coordinates of the bounding box
@@ -144,8 +153,8 @@ class PlanarPoseEstimation():
             for pt_count, dt in enumerate(pc2.read_points(pc_sub, field_names={'x','y','z'}, skip_nans=False, uvs=points)):
                 # If any point returns nan, return
                 if np.any(np.isnan(dt)):
-                    if object_ in self.object_pose_info.keys():
-                        del self.object_pose_info[object_] 
+                    if object_name in self.object_namepose_info.keys():
+                        del self.object_namepose_info[object_name] 
                     rospy.loginfo('No corresponding 3D point found')
                     return
                 else:
@@ -155,37 +164,38 @@ class PlanarPoseEstimation():
         except struct.error as err:
             rospy.loginfo(err)
             return
-                
-        # 3D position of the object
-        c_3D = self.vectors_3D[0]
-
-        # Center the vectors to the origin
-        x_vec = self.vectors_3D[1] - c_3D
-        y_vec = self.vectors_3D[2] - c_3D
-        # Take the cross product of x and y vector
-        # to generate z vector.
-        z_vec = np.cross(x_vec, y_vec)
-        # Recompute x vector to make it truly orthognal
-        x_vec_orth = np.cross(y_vec, z_vec)
         
-        # Normalize the orthogonal axes 
-        try:
-            x_vec_orth = x_vec_orth / norm(x_vec_orth)
-            y_vec = y_vec / norm(y_vec)
-            z_vec = z_vec / norm(z_vec)
+        try:        
+            # 3D position of the object
+            c_3D = self.vectors_3D[0]
+            
+            # Center the vectors to the origin
+            x_vec = self.vectors_3D[1] - c_3D
+            x_vec /= norm(x_vec)
+            
+            y_vec = self.vectors_3D[2] - c_3D
+            y_vec /= norm(y_vec)
+            # Take the cross product of x and y vector
+            # to generate z vector.
+            z_vec = np.cross(x_vec, y_vec)
+            z_vec /= norm(z_vec)
+            
+            # Recompute x vector to make it truly orthognal
+            x_vec_orth = np.cross(y_vec, z_vec)
+            x_vec_orth /= norm(x_vec_orth)
         except RuntimeWarning as w:
             rospy.loginfo(w)
             return
         
         if self.viz_pose:
-            # self.draw_pose(object_, self.vectors_3D)
-            self.draw_pose(object_, np.vstack((self.vectors_3D, z_vec)))
+            self.draw_pose(object_name, np.vstack((self.vectors_3D, z_vec)))
         
         # Compute Euler angles i.e. roll, pitch, yaw
         roll = np.arctan2(y_vec[2], z_vec[2])
         pitch = np.arctan2(-x_vec_orth[2], np.sqrt(1 - x_vec_orth[2]**2))
+        # pitch = np.arcsin(-x_vec_orth[2])
         yaw = np.arctan2(x_vec_orth[1], x_vec_orth[0])
-        
+                
         # Convert to quaternion
         [qx, qy, qz, qw] = self.euler_to_quaternion(roll, pitch, yaw)
         
@@ -202,16 +212,21 @@ class PlanarPoseEstimation():
         pose_msg.orientation.w = qw
         
         # Store/update the pose information.
-        self.object_pose_info[object_] = {'position': c_3D.tolist(), 'orientation': [qx, qy, qz, qw]}
+        self.object_namepose_info[object_name] = {'position': c_3D.tolist(), 'orientation': [qx, qy, qz, qw]}
         
         return pose_msg
     
-    def draw_pose(self, object_, vectors_3D):
-        # assert len(vectors_3D) == 3, 'vectors_3D should have 4 vectors'
-        c, x, y, z = vectors_3D
-        # z = norm(z)/norm(vectors_3D)
-        print(z)
-        print(norm(z))
+    def draw_pose(self, object_name: str, vectors_3D: np.ndarray):
+        """
+        Draw poses as directional axes on the image.
+
+        Parameters
+        ----------
+        object_name : str
+            Name of the object
+        vectors_3D : numpy.ndarray
+            The 3D directional vectors.
+        """
 
         p_image = np.zeros((4,2), dtype=np.int32)
         coordinates = None
@@ -219,40 +234,40 @@ class PlanarPoseEstimation():
             coordinates = self.project3dToPixel(vec)
             if coordinates.any() is None:
                 break
-            print(f'pixel is: {coordinates}')
+            # print(f'pixel is: {coordinates}')
             p_image[i]= coordinates
         
         if coordinates is not None:
-            # p_image[3] = tuple([2*i-j for i,j in zip(p_image[0], p_image[3])])
-            p_image[3] = 2*p_image[0] - p_image[3]
+            p_image[3] = p_image[0] - (p_image[3] - p_image[0])
             # z = c + (z-c)*(norm(x-c)/norm(z-c))
             p_image[3] = p_image[0] + (p_image[3] - p_image[0])*(norm(p_image[1] - p_image[0])/norm(p_image[3] - p_image[0]))
-            colors_ = [(255,0,0),(0,255,0),(0,0,255)]
+            colors_ = [(0,0,255),(0,255,0),(255,0,0)]
             for i in range(1,4):
                 cv2.line(self.viz_frame, tuple(p_image[0]), tuple(p_image[i]), colors_[i-1], thickness=2)
-                # cv2.line(self.viz_frame, p_image[0], p_image[2], (0, 255, 0), thickness=2)
-                # cv2.line(self.viz_frame, p_image[0], p_image[3], (0, 0, 255), thickness=2)
                 x1, y1, x2, y2 = self.calc_vertexes(p_image[0], p_image[i])
                 cv2.line(self.viz_frame, tuple(p_image[i]), (x1, y1), colors_[i-1], thickness=2)
                 cv2.line(self.viz_frame, tuple(p_image[i]), (x2, y2), colors_[i-1], thickness=2)
-            text_loc = (int(p_image[2][0] - ((p_image[1][0] - p_image[0][0]) / 2)), p_image[2][1])
-            text_loc = np.array([p_image[2,0] - (p_image[1,0] - p_image[0,0])/2, p_image[2,1]], dtype=np.int16)
-            cv2.putText(self.viz_frame,
-                        object_, 
-                        tuple(text_loc), 
-                        cv2.FONT_HERSHEY_PLAIN, 
-                        1,
-                        (127,255,200),
-                        2)
 
-                
-            cv2.imshow('Pose', self.viz_frame)
-            cv2.waitKey(10)
-            
+            # Put object label aligned to the object's in-plane planar rotation            
+            text_loc = np.array([p_image[2,0] - (p_image[1,0] - p_image[0,0])/2, p_image[2,1] - 20], dtype=np.int16)
+            base, tangent = p_image[1] - p_image[0]
+            text_angle = np.arctan2(-tangent, base)*180/np.pi
+            self.viz_frame = draw_angled_text(object_name, text_loc, text_angle, self.viz_frame)
+
             
     def project3dToPixel(self, point):
         """
+        Find the 3D point projected to image plane
 
+        Parameters
+        ----------
+        point : numpy.ndarrya | tuple | list
+            The 3D point.
+        Returns
+        -------
+        numpy.ndarray | None
+            The pixel location corresponding to the 
+            3D vector. Returns None if w is 0.
         """
         src = np.array([point[0], point[1], point[2], 1.0]).reshape(4,1)
         dst = self.P @ src
@@ -266,7 +281,22 @@ class PlanarPoseEstimation():
         else:
             return None
     
-    def calc_vertexes(self, start_cor, end_cor):
+    def calc_vertexes(self, start_cor: np.ndarray, end_cor: np.ndarray):
+        """
+        Calculate line segments of the vector arrows to be drawn.
+
+        Parameters
+        ----------
+        start_cor : numpy.ndarray
+            Base point of the arrow.
+        end_cor : numpy.ndarray
+            End point of the arrow.
+
+        Returns
+        -------
+        list
+            Location of the edge of arrow segments.
+        """
         start_x, start_y = start_cor
         end_x, end_y = end_cor
         angle = np.arctan2(end_y - start_y, end_x - start_x) + np.pi

@@ -14,7 +14,7 @@ chdir(dir_path)
 import rospy
 from std_msgs.msg import String
 import config
-from utils import shrink_bbox
+from utils import shrink_bbox, draw_angled_text
 
 
 class ObjectDetection():
@@ -34,6 +34,9 @@ class ObjectDetection():
         self.to_gray = to_gray
         self.detector_descriptor = config.detector_descriptor
         self.matcher = config.matcher
+        
+        if self.config.show_image:
+            self.viz_frame = None
         
         # Holds all the information i.e. keypoints,  
         # descriptors, and dimension, for object detection.
@@ -121,6 +124,7 @@ class ObjectDetection():
             Image retrieved from a sensor (webcam/kinect).
         """
         image = np.frombuffer(sensor_image.data, dtype=np.uint8).reshape(sensor_image.height, sensor_image.width, -1)
+        self.viz_frame = image
         if image is None:
             rospy.loginfo('invalid image received')
             return
@@ -130,12 +134,16 @@ class ObjectDetection():
             self.prev = time.time()
             for object_name, feat in self.query_object_features.items():
                 self.detect(object_name, feat, image)
-
+                
             # Convert the dictionary to string
             self.obj_boundary_msg = json.dumps(self.obj_boundary_info)
             self.obj_boundary_pub.publish(self.obj_boundary_msg)
+        
+            if self.config.show_image:
+                cv2.imshow('Detected Objects', self.viz_frame)
+                cv2.waitKey(10)
 
-    def detect(self, object_name: str, query_img_feat: list, sensor_image: np.ndarray, show_image: bool=True):
+    def detect(self, object_name: str, query_img_feat: list, sensor_image: np.ndarray):
         """
         Detects if the object is in the frame
 
@@ -147,12 +155,12 @@ class ObjectDetection():
             A list containing keypoints, descriptors, and 
             dimension information of query object's image
         sensor_image : numpy.ndarray
-            Image retrieved from a sensor (webcam/kinect).
-        show_image : bool, optional
-            If True the frame with detected object will 
-            be showed, by default True
+            Image retrieved from a sensor (webcam/kinect).            
         """
         MIN_MATCH_COUNT = self.config.min_match_count
+        # If True the frame with detected object will 
+        # be showed, by default False
+        show_image = self.config.show_image
         if self.to_gray:
             sensor_rgb = sensor_image
             sensor_image = cv2.cvtColor(sensor_image, cv2.COLOR_BGR2GRAY)
@@ -182,17 +190,27 @@ class ObjectDetection():
             self.obj_boundary_info[object_name] = np.squeeze(dst, axis=1).tolist()
             if show_image:
                 if self.to_gray:
-                    result = cv2.polylines(sensor_rgb, [dst] ,True,255,1, cv2.LINE_AA)
+                    sensor_rgb = cv2.polylines(sensor_rgb, [dst] ,True,255,1, cv2.LINE_AA)
                 else:
-                    result = cv2.polylines(sensor_image, [dst] ,True,255,1, cv2.LINE_AA)
-                cv2.imshow('Detected Objects', result)
-                cv2.waitKey(10)
+                    sensor_rgb = cv2.polylines(sensor_image, [dst] ,True,255,1, cv2.LINE_AA)
+                
+                dst = np.squeeze(dst, axis=1)
+                tc = (dst[3] + dst[0])/2
+                tc = (tc + dst[0])/2
+                print(tc)
+                text_loc = np.array([tc[0], tc[1] - 20], dtype=np.int16)
+                base, tangent = dst[3] - dst[0]
+                text_angle = np.arctan2(-tangent, base)*180/np.pi
+                self.viz_frame = draw_angled_text(object_name, text_loc, text_angle, self.viz_frame)
+                # self.viz_frame = bg
+                
         else:
             # Set None if the object isn't detected
             self.obj_boundary_info[object_name] = None
             rospy.loginfo( "Not enough matches are found - {}/{}".
                 format(len(good), MIN_MATCH_COUNT) )
         
+
 
 if __name__ == '__main__':
     ObjectDetection(config=config)

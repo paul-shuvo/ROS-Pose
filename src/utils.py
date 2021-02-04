@@ -1,6 +1,43 @@
 import numpy as np
 from sympy.geometry import Segment
 from sympy import symbols
+import cv2
+
+def draw_angled_text(object_name: str, text_loc: np.ndarray, text_angle: float, sensor_image: np.ndarray):
+    """
+    Draws text at an angle to the image
+
+    Parameters
+    ----------
+    object_name : str
+        name of the object
+    text_loc : numpy.ndarray
+        Desired location of the text in the image
+    text_angle : float
+        Angle of the text.
+    sensor_image : numpy.ndarray
+        Input image
+
+    Returns
+    -------
+    numpy.ndarray
+        Resultant image
+    """
+    text_color = (32,112,207)
+    text_image = np.zeros(sensor_image.shape, dtype=np.uint8)
+    M = cv2.getRotationMatrix2D(tuple(text_loc), text_angle, 1)
+    cv2.putText(text_image,
+                object_name, 
+                tuple(text_loc), 
+                cv2.FONT_HERSHEY_PLAIN, 
+                1,
+                text_color,
+                2)
+    text_image = cv2.warpAffine(text_image, M, (text_image.shape[1], text_image.shape[0]))
+    mask = np.dstack([(text_image > 0)])
+    bg = sensor_image.copy()
+    np.copyto(bg, text_image, where=mask)
+    return bg
 
 def segment_arb_pts(seg, 
                     n_pts: int=10, 

@@ -36,9 +36,14 @@ object_path = 'objects'
 # Name of the objects corresponding to
 # the files name without the extension
 # e.g. book-1.jpg corresponds to book-1
-objects = ['book-1']
+objects = ['book-1', 'chat']
 
+# Minimum match required for an object to be considered detected
 min_match_count = 15
+
+# Visualize the detected objects,
+# if set to True
+show_image = True
 
 # Define detector-descriptor and the 
 # matcher algortihm
@@ -49,4 +54,6 @@ matcher = cv2.FlannBasedMatcher(dict(algorithm=1, trees=5),
 # it as an empty `dict` e.g. {}
 matcher_kwargs = {'k':2}
 
-viz_pose = True
+# Visualize the pose of the objects, 
+# if set to True
+viz_pose = False
