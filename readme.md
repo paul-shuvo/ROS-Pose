@@ -1,10 +1,11 @@
 # Planar Pose Estimation
 
----
 [![CodeFactor](https://www.codefactor.io/repository/github/paul-shuvo/planar_pose/badge)](https://www.codefactor.io/repository/github/paul-shuvo/planar_pose)
 [![Build Status](https://www.travis-ci.com/paul-shuvo/planar_pose.svg?branch=main)](https://www.travis-ci.com/paul-shuvo/planar_pose)
 
+
 ## Table of contents
+- [Planar Pose Estimation](#planar-pose-estimation)
   - [Table of contents](#table-of-contents)
     - [Dependencies](#dependencies)
     - [Install](#install)

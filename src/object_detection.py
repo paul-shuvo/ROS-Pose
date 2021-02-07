@@ -190,14 +190,16 @@ class ObjectDetection():
             self.obj_boundary_info[object_name] = np.squeeze(dst, axis=1).tolist()
             if show_image:
                 if self.to_gray:
-                    sensor_rgb = cv2.polylines(sensor_rgb, [dst] ,True,255,1, cv2.LINE_AA)
+                    # sensor_rgb = cv2.polylines(sensor_rgb, [dst] ,True,255,1, cv2.LINE_AA)
+                    self.viz_frame = cv2.polylines(self.viz_frame, [dst] ,True,255,1, cv2.LINE_AA)
                 else:
-                    sensor_rgb = cv2.polylines(sensor_image, [dst] ,True,255,1, cv2.LINE_AA)
-                
+                    # sensor_rgb = cv2.polylines(sensor_image, [dst] ,True,255,1, cv2.LINE_AA)
+                    self.viz_frame = cv2.polylines(self.viz_frame, [dst] ,True,255,1, cv2.LINE_AA)
+
                 dst = np.squeeze(dst, axis=1)
                 tc = (dst[3] + dst[0])/2
                 tc = (tc + dst[0])/2
-                print(tc)
+
                 text_loc = np.array([tc[0], tc[1] - 20], dtype=np.int16)
                 base, tangent = dst[3] - dst[0]
                 text_angle = np.arctan2(-tangent, base)*180/np.pi

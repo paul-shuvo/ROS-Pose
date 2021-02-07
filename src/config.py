@@ -36,7 +36,7 @@ object_path = 'objects'
 # Name of the objects corresponding to
 # the files name without the extension
 # e.g. book-1.jpg corresponds to book-1
-objects = ['book-1', 'chat']
+objects = 'all'
 
 # Minimum match required for an object to be considered detected
 min_match_count = 15
@@ -56,4 +56,4 @@ show_image = True
 
 # Visualize the pose of the objects, 
 # if set to True
-viz_pose = False
+viz_pose = True

@@ -1,115 +1,79 @@
-from os.path import dirname, abspath, join
-from os import listdir, chdir
-import numpy as np
-import time
-import cv2
-# import json
+#!/usr/bin/env python
 
-# Change directory to the file directory
-dir_path = dirname(abspath(__file__))
-chdir(dir_path)
+from __future__ import print_function
 
-# ROS imports
+import rostest
+import rospy
+import unittest
+import sensor_msgs.msg
 
-# from arm_pose.msg import Floats
-from utils import shrink_bbox
+from image_geometry import PinholeCameraModel, StereoCameraModel
 
+class TestDirected(unittest.TestCase):
 
-def detect(object_name, query_im, kinect_im, desc, flann, show_image=True):
-    now = time.time()
-    # small_to_large_image_size_ratio = 0.9
-    # kinect_im = cv2.cvtColor(kinect_im, cv2.COLOR_BGR2GRAY)
-    # kinect_im = cv2.resize(kinect_im, # original image
-    #                     (0,0), # set fx and fy, not the final size
-    #                     fx=small_to_large_image_size_ratio, 
-    #                     fy=small_to_large_image_size_ratio, 
-    #                     interpolation=cv2.INTER_NEAREST)
-    # query_im = cv2.cvtColor(query_im, cv2.COLOR_BGR2GRAY)
-    # minimum matching points needed to consider a match
-    MIN_MATCH_COUNT = 10
-    
-    # img1 = cv.imread('box.png',0)          # queryImage
-    # img2 = cv.imread('box_in_scene.png',0) # trainImage
+    def setUp(self):
+        pass
 
-    kp2, des2 = desc.detectAndCompute(kinect_im,None)
+    def test_monocular(self):
+        ci = sensor_msgs.msg.CameraInfo()
+        ci.width = 640
+        ci.height = 480
+        print(ci)
+        cam = PinholeCameraModel()
+        cam.fromCameraInfo(ci)
+        print(cam.rectifyPoint((0, 0)))
 
-    # matches = flann.knnMatch(des1, des2, k=2)
-    matches = flann.knnMatch(des1,des2, k=2)
-    # store all the good matches as per Lowe's ratio test.
-    good = []
-    for m,n in matches:
-        if m.distance < 0.7*n.distance:
-            good.append(m)
+        print(cam.project3dToPixel((0,0,0)))
 
-    if len(good) > MIN_MATCH_COUNT:
-        src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
-        dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
-        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-        print(f'Time is: {time.time() - now}')
+    def test_stereo(self):
+        lmsg = sensor_msgs.msg.CameraInfo()
+        rmsg = sensor_msgs.msg.CameraInfo()
+        for m in (lmsg, rmsg):
+            m.width = 640
+            m.height = 480
+
+        # These parameters taken from a real camera calibration
+        lmsg.D =  [-0.363528858080088, 0.16117037733986861, -8.1109585007538829e-05, -0.00044776712298447841, 0.0]
+        lmsg.K =  [430.15433020105519, 0.0, 311.71339830549732, 0.0, 430.60920415473657, 221.06824942698509, 0.0, 0.0, 1.0]
+        lmsg.R =  [0.99806560714807102, 0.0068562422224214027, 0.061790256276695904, -0.0067522959054715113, 0.99997541519165112, -0.0018909025066874664, -0.061801701660692349, 0.0014700186639396652, 0.99808736527268516]
+        lmsg.P =  [295.53402059708782, 0.0, 285.55760765075684, 0.0, 0.0, 295.53402059708782, 223.29617881774902, 0.0, 0.0, 0.0, 1.0, 0.0]
+
+        rmsg.D =  [-0.3560641041112021, 0.15647260261553159, -0.00016442960757099968, -0.00093175810713916221]
+        rmsg.K =  [428.38163131344191, 0.0, 327.95553847249192, 0.0, 428.85728580588329, 217.54828640915309, 0.0, 0.0, 1.0]
+        rmsg.R =  [0.9982082576219119, 0.0067433328293516528, 0.059454199832973849, -0.0068433268864187356, 0.99997549128605434, 0.0014784127772287513, -0.059442773257581252, -0.0018826283666309878, 0.99822993965212292]
+        rmsg.P =  [295.53402059708782, 0.0, 285.55760765075684, -26.507895206214123, 0.0, 295.53402059708782, 223.29617881774902, 0.0, 0.0, 0.0, 1.0, 0.0]
+
+        cam = StereoCameraModel()
+        cam.fromCameraInfo(lmsg, rmsg)
+
+        for x in (16, 320, m.width - 16):
+            for y in (16, 240, m.height - 16):
+                for d in range(1, 10):
+                    pt3d = cam.projectPixelTo3d((x, y), d)
+                    ((lx, ly), (rx, ry)) = cam.project3dToPixel(pt3d)
+                    self.assertAlmostEqual(y, ly, 3)
+                    self.assertAlmostEqual(y, ry, 3)
+                    self.assertAlmostEqual(x, lx, 3)
+                    self.assertAlmostEqual(x, rx + d, 3)
         
-        if M is None:
-            return
-        # matchesMask = mask.ravel().tolist()
-        h,w = query_im.shape[0:2]
-        pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1, 1, 2)
-        dst = cv2.perspectiveTransform(pts,M).astype(np.int32)
-        # update the location of the object in the image
-        # converted to list as ndarray object is not json serializable
-        print(f'Before Shrink: {time.time() - now}')
-        # dst2 = shrink_bbox(dst[:, 0, :], shrink_val=0.9).tolist()
-        print(f'After Shrink: {time.time() - now}')
+        u = 100.0
+        v = 200.0
+        du = 17.0
+        dv = 23.0
+        Z = 2.0
+        xyz0 = cam.left.projectPixelTo3dRay((u, v))
+        xyz0 = (xyz0[0] * (Z / xyz0[2]), xyz0[1] * (Z / xyz0[2]), Z)
+        xyz1 = cam.left.projectPixelTo3dRay((u + du, v + dv))
+        xyz1 = (xyz1[0] * (Z / xyz1[2]), xyz1[1] * (Z / xyz1[2]), Z)
+        self.assertAlmostEqual(cam.left.getDeltaU(xyz1[0] - xyz0[0], Z), du, 3)
+        self.assertAlmostEqual(cam.left.getDeltaV(xyz1[1] - xyz0[1], Z), dv, 3)
+        self.assertAlmostEqual(cam.left.getDeltaX(du, Z), xyz1[0] - xyz0[0], 3)
+        self.assertAlmostEqual(cam.left.getDeltaY(dv, Z), xyz1[1] - xyz0[1], 3)
 
-        if show_image:
-            kinect_im = cv2.polylines(kinect_im, [dst],True,255,1, cv2.LINE_AA)
-            print(f'Draw time: {time.time() - now}')
-
-            cv2.imshow('Detected Objects', kinect_im)
-            cv2.waitKey(10)
-            
+if __name__ == '__main__':
+    if 1:
+        rostest.unitrun('image_geometry', 'directed', TestDirected)
     else:
-        # Set None if the object isn't detected
-        # matchesMask = None
-        print('Not enough points')
-        
-
-
-vid = cv2.VideoCapture(0) 
-
-# Initiate SIFT detector
-sift = cv2.SIFT_create()
-# brisk = cv2.BRISK_create()
-desc = sift
-# find the keypoints and descriptors with SIFT
-FLANN_INDEX_KDTREE = 1
-
-index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-search_params = dict(checks = 50)
-bf = cv2.BFMatcher()
-
-flann = cv2.FlannBasedMatcher(index_params, search_params)
-query_im = cv2.imread('objects/book-1.jpg')
-h, w = query_im.shape[0:2]
-reduce_bbox = shrink_bbox([[0,0],[0,h],[w,h],[w,0]])
-query_im = query_im[reduce_bbox[0,1]:reduce_bbox[2,1], 
-                    reduce_bbox[0,0]:reduce_bbox[2,0], :]
-cv2.imshow('q', query_im)
-# query_im = cv2.cvtColor(query_im, cv2.COLOR_BGR2GRAY)
-cv2.waitKey(10)
-
-kp1, des1 = desc.detectAndCompute(query_im,None)
-
-frame_rate = 10
-prev = 0
-count = 0
-while True:
-    time_elapsed = time.time() - prev
-
-    ret, frame = vid.read() 
-    # if time_elapsed > 1./frame_rate:
-    #     prev = time.time()  
-    #     detect('book', query_im, frame, desc, flann)
-    if count % 30 is 0:
-        count = 0
-    detect('book', query_im, frame, desc, flann)
-        
-    count += 1
+        suite = unittest.TestSuite()
+        suite.addTest(TestDirected('test_stereo'))
+        unittest.TextTestRunner(verbosity=2).run(suite)
