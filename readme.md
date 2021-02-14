@@ -4,6 +4,8 @@ A simple ROS package for detection and pose estimation for textured objects.
 
 [![CodeFactor](https://www.codefactor.io/repository/github/paul-shuvo/planar_pose/badge)](https://www.codefactor.io/repository/github/paul-shuvo/planar_pose)
 [![Build Status](https://www.travis-ci.com/paul-shuvo/planar_pose.svg?branch=main)](https://www.travis-ci.com/paul-shuvo/planar_pose)
+![](https://img.shields.io/badge/ROS-Noetic%20%7C%20Melodic%20%7C%20Kinetic-blue)
+![](https://img.shields.io/badge/Python-2.7%20%7C%203.3+-green)
 
 <!-- __Note:__ `sudo apt install ros-noetic-tf-conversions` before installing it
 
@@ -20,14 +22,14 @@ following is an important image
   - [Dependencies](#dependencies)
   - [Install](#install)
   - [Run](#run)
-  - [Topics](#topics)
+  - [Published Topics](#published-topics)
   - [Demo](#demo)
   - [Citation](#citation)
   - [TODO](#todo)
 
 ### Dependencies
 
-- ROS Indigo/Jade/Melodic/Noetic
+- ROS Noetic/Melodic/Kinetic
 - OpenCV (Tested on opencv 4, should work with other opencv versions as well)
 
 ### Install
@@ -72,7 +74,7 @@ source devel/setup.bash
 rosrun planar_pose planar_pose_estimation.py
 ```
 
-### Topics
+### Published Topics
 
  - `/detected_object`
     Coordinates of the boundary of the detected objects in terms of a json string. 

@@ -3,7 +3,7 @@ sudo: required
 
 jobs:
   include:
-    
+
     - name: noetic
       os: linux
       dist: focal
