@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: future_fstrings -*-
+
 from os.path import dirname, abspath, join
 from os import listdir, chdir
 import numpy as np

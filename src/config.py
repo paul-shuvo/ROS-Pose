@@ -27,8 +27,8 @@ cam_info_sub = {
 
 # Make sure all the topics corrsponds
 # image resolution, i.e. qhd, sd, or hd
-assert image_sub['topic'].split('/')[2] == pc_sub['topic'].split('/')[2], 'image topic and point cloud topic have resolution mismatch'
-assert image_sub['topic'].split('/')[2] == cam_info_sub['topic'].split('/')[2], 'image topic and camera info topic have resolution mismatch'
+assert image_sub['topic'].split('/')[2] == pc_sub['topic'].split('/')[2], 'image topic and point cloud topic have resolution mismatch'  # noqa: E501
+assert image_sub['topic'].split('/')[2] == cam_info_sub['topic'].split('/')[2], 'image topic and camera info topic have resolution mismatch'  # noqa: E501
 
 
 # Path containing images of query objects
@@ -41,19 +41,19 @@ objects = ['book-1']
 # Minimum match required for an object to be considered detected
 min_match_count = 15
 
-# Define detector-descriptor and the 
+# Define detector-descriptor and the
 # matcher algortihm
 detector_descriptor = cv2.SIFT_create()
 matcher = cv2.FlannBasedMatcher(dict(algorithm=1, trees=5),
                                 dict(checks=50)).knnMatch
 # If there's no kwargs for the matcher keep
 # it as an empty `dict` e.g. {}
-matcher_kwargs = {'k':2}
+matcher_kwargs = {'k': 2}
 
 # Visualize the detected objects,
 # if set to True
 show_image = True
 
-# Visualize the pose of the objects, 
+# Visualize the pose of the objects,
 # if set to True
 viz_pose = True

@@ -1,3 +1,4 @@
+future-fstrings
 rospy
 catkin_pkg
 numpy

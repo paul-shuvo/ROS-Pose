@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: future_fstrings -*-
 
 # ROS imports
 import rospy
@@ -172,12 +173,12 @@ class PlanarPoseEstimation():
                 # If any point returns nan, return
                 if np.any(np.isnan(dt)):
                     if object_name in self.object_namepose_info.keys():
-                        del self.object_namepose_info[object_name] 
+                        del self.object_namepose_info[object_name]
                     rospy.loginfo('No corresponding 3D point found')
                     return
                 else:
                     vectors_3D[pt_count] = dt
-                    if pt_count is 2:
+                    if pt_count == 2:
                         self.vectors_3D = vectors_3D
         except struct.error as err:
             rospy.loginfo(err)
@@ -284,7 +285,6 @@ class PlanarPoseEstimation():
             coordinates = self.project3dToPixel(vec)
             if np.isnan(coordinates).any():
                 break
-            # print(f'pixel is: {coordinates}')
             p_image[i] = coordinates
 
         if coordinates is not None:
