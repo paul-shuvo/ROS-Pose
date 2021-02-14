@@ -1,9 +1,11 @@
-# Planar Pose Estimation
+## Planar Pose Estimation
+
+A simple ROS package for detection and pose estimation for textured objects.
 
 [![CodeFactor](https://www.codefactor.io/repository/github/paul-shuvo/planar_pose/badge)](https://www.codefactor.io/repository/github/paul-shuvo/planar_pose)
 [![Build Status](https://www.travis-ci.com/paul-shuvo/planar_pose.svg?branch=main)](https://www.travis-ci.com/paul-shuvo/planar_pose)
 
-__Note:__ `sudo apt install ros-noetic-tf-conversions` before installing it
+<!-- __Note:__ `sudo apt install ros-noetic-tf-conversions` before installing it
 
 following is an important image 
 
@@ -11,17 +13,17 @@ following is an important image
 
 [crocos_installation](https://github.com/orocos/orocos_kinematics_dynamics/blob/master/python_orocos_kdl/INSTALL.md)
 
-[image_issue](https://github.com/orocos/orocos_kinematics_dynamics/issues/115)
+[image_issue](https://github.com/orocos/orocos_kinematics_dynamics/issues/115) -->
 
-## Table of contents
+<!-- ## Table of contents -->
 - [Planar Pose Estimation](#planar-pose-estimation)
-  - [Table of contents](#table-of-contents)
-    - [Dependencies](#dependencies)
-    - [Install](#install)
-    - [Run](#run)
-    - [Topics](#topics)
-    - [Demo](#demo)
-    - [Citation](#citation)
+  - [Dependencies](#dependencies)
+  - [Install](#install)
+  - [Run](#run)
+  - [Topics](#topics)
+  - [Demo](#demo)
+  - [Citation](#citation)
+  - [TODO](#todo)
 
 ### Dependencies
 
@@ -146,3 +148,10 @@ Please cite these papers in your publications if it helps your research:
 }
 ```
 
+### TODO
+
+- [ ] Do more tests
+- [ ] Add build pipeline for other Ubuntu distro
+- [ ] Add future_fstrings
+- [ ] Clean `utils.py`
+- [ ] Remove `sympy` and use `numpy` for geometry computation.
