@@ -135,6 +135,10 @@ rosrun planar_pose planar_pose_estimation.py
 
 ### Demo
 
+The images of the objects' planes should be put inside the `src/objects` folder. The path could be changed in the `config.py` file. For the demo below, the following image of a "Cheezit" box was used.
+
+![](src/objects/cheeze-it.png)
+
 ![](doc_/pose_viz.gif)
 
 `(a)`, `(b)`, `(c)` are recovered poses from robot’s camera and `(d)`, `(e)`, `(f)` are corresponding poses visualized in RViz
