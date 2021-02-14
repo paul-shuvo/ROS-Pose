@@ -55,17 +55,17 @@ jobs:
         - sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
         - sudo apt update
         - sudo apt install ros-melodic-ros-base
-      before_script:
         - source /opt/ros/melodic/setup.bash
+      before_script:
+        - mkdir -p ~/catkin_ws/src
+        - cd ~/catkin_ws/src
+        - git clone https://github.com/paul-shuvo/planar_pose.git
+        - pip install -r planar_pose/requirements.txt
         - sudo apt install python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
         - sudo apt install python3-rosdep
         - sudo rosdep init
         - rosdep update
       script:
-        - mkdir -p ~/catkin_ws/src
-        - cd ~/catkin_ws/src
-        - git clone https://github.com/paul-shuvo/planar_pose.git
-        - pip install -r planar_pose/requirements.txt
         - cd ~/catkin_ws/
         - catkin_make
         - catkin_make install
@@ -88,17 +88,17 @@ jobs:
         - sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
         - sudo apt update
         - sudo apt install ros-kinetic-ros-base
-      before_script:
         - source /opt/ros/kinetic/setup.bash
+      before_script:
+        - mkdir -p ~/catkin_ws/src
+        - cd ~/catkin_ws/src
+        - git clone https://github.com/paul-shuvo/planar_pose.git
+        - pip install -r planar_pose/requirements.txt
         - sudo apt install python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
         - sudo apt install python3-rosdep
         - sudo rosdep init
         - rosdep update
       script:
-        - mkdir -p ~/catkin_ws/src
-        - cd ~/catkin_ws/src
-        - git clone https://github.com/paul-shuvo/planar_pose.git
-        - pip install -r planar_pose/requirements.txt
         - cd ~/catkin_ws/
         - catkin_make
         - catkin_make install
