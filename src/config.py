@@ -36,7 +36,7 @@ object_path = 'objects'
 # Name of the objects corresponding to
 # the files name without the extension
 # e.g. book-1.jpg corresponds to book-1
-objects = 'all'
+objects = ['book-1']
 
 # Minimum match required for an object to be considered detected
 min_match_count = 15

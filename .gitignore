@@ -142,3 +142,4 @@ cython_debug/
 *devel/
 bagfiles
 .vscode/
+objects/*
