@@ -1,11 +1,14 @@
 ## Planar Pose Estimation
 
-A simple ROS package for detection and pose estimation for textured objects.
+A ROS package for a simple object detection and planar pose estimation method for textured objects.
 
 [![CodeFactor](https://www.codefactor.io/repository/github/paul-shuvo/planar_pose/badge)](https://www.codefactor.io/repository/github/paul-shuvo/planar_pose)
 [![Build Status](https://www.travis-ci.com/paul-shuvo/planar_pose.svg?branch=main)](https://www.travis-ci.com/paul-shuvo/planar_pose)
 ![](https://img.shields.io/badge/ROS-Noetic%20%7C%20Melodic%20%7C%20Kinetic-blue)
 ![](https://img.shields.io/badge/Python-2.7%20%7C%203.3+-green)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/licenses/MIT)
+
+
 
 <!-- __Note:__ `sudo apt install ros-noetic-tf-conversions` before installing it
 
@@ -30,6 +33,7 @@ following is an important image
 ### Dependencies
 
 - ROS Noetic/Melodic/Kinetic
+- Python 2.7, 3.3+ for ROS Noetic (should support Python 3 for other ROS Distros as well)
 - OpenCV (Tested on opencv 4, should work with other opencv versions as well)
 
 ### Install
@@ -133,7 +137,7 @@ rosrun planar_pose planar_pose_estimation.py
 
 ![](doc_/pose_viz.gif)
 
-(a),(b),(c) are recovered poses from robot’s camera and (d),(e),(f) are corresponding poses visualized in RViz
+`(a)`, `(b)`, `(c)` are recovered poses from robot’s camera and `(d)`, `(e)`, `(f)` are corresponding poses visualized in RViz
 
 ![](doc_/cam_rviz.png)
 
@@ -141,7 +145,7 @@ rosrun planar_pose planar_pose_estimation.py
 
 Please cite these papers in your publications if it helps your research:
 
-```bibtex
+```tex
 @inproceedings{paul2020object,
       title={Object Detection and Pose Estimation from RGB and Depth Data for Real-time, Adaptive Robotic Grasping}, 
       author={S. K. Paul and M. T. Chowdhury and M. Nicolescu and M. Nicolescu},
@@ -153,7 +157,3 @@ Please cite these papers in your publications if it helps your research:
 ### TODO
 
 - [ ] Do more tests
-- [ ] Add build pipeline for other Ubuntu distro
-- [ ] Add future_fstrings
-- [ ] Clean `utils.py`
-- [ ] Remove `sympy` and use `numpy` for geometry computation.
