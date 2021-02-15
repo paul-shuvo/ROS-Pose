@@ -19,6 +19,10 @@ pc_sub = {
 
 to_gray = True
 
+# if hold_prev_value is True, then it will
+# hold the previous value if no value is
+# recieved from the method for hold_period
+# amount of time
 hold_prev_vals = True
 if hold_prev_vals:
     hold_period = 5  # in seconds
