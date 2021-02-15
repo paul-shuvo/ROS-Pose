@@ -17,6 +17,12 @@ pc_sub = {
     'type': PointCloud2
     }
 
+to_gray = True
+
+hold_prev_vals = True
+if hold_prev_vals:
+    hold_period = 5  # in seconds
+
 # CameraInfo topic for retrieving
 # camera matrix
 

@@ -10,6 +10,7 @@ from geometry_msgs.msg import PoseArray, Pose
 
 from os.path import dirname, abspath
 from os import chdir
+from time import time
 import numpy as np
 from numpy.linalg import norm
 import message_filters
@@ -27,6 +28,7 @@ chdir(dir_path)
 # Except warnings as errors
 warnings.filterwarnings("error")
 
+# TODO: check hold functionality for multiple objects
 
 class PlanarPoseEstimation():
     def __init__(self, config):
@@ -45,18 +47,20 @@ class PlanarPoseEstimation():
         rospy.init_node('planar_pose_estimation', anonymous=False)
         # Pose info gets published both as a `String` and
         # as `PoseArray`.
-        self.pose_info_pub = rospy.Publisher('/object_namepose_info',
+        self.pose_info_pub = rospy.Publisher('/object_pose_info',
                                              String, queue_size=10)
         self.pose_array_pub = rospy.Publisher('/object_namepose_array',
                                               PoseArray, queue_size=10)
 
-        self.object_namepose_info = {}
+        self.object_pose_info = {}
+        if self.config.hold_prev_vals:
+            self.object_pose_timer = {}
         self.pose_array = PoseArray()
         # `self.obj_pose_info` is converted to json string and
         # then set to `self.obj_pose_msg` which then gets published
         self.obj_pose_msg = ''
 
-        self.object_namedetection_sub = message_filters.Subscriber(
+        self.object_detection_sub = message_filters.Subscriber(
                 '/detected_object', String
             )
         self.pc_sub = message_filters.Subscriber(
@@ -77,7 +81,7 @@ class PlanarPoseEstimation():
             self.P = np.array(camera_info.P).reshape((3, 4))
 
         ts = message_filters.ApproximateTimeSynchronizer(
-                [self.object_namedetection_sub, self.pc_sub, self.image_sub],
+                [self.object_detection_sub, self.pc_sub, self.image_sub],
                 10, 1, allow_headerless=True
             )
 
@@ -86,7 +90,7 @@ class PlanarPoseEstimation():
 
     def callback(
         self,
-        object_namedetection_sub: str,
+        object_detection_sub: str,
         pc_sub: PointCloud2,
         image_sub: Image
     ):
@@ -95,7 +99,7 @@ class PlanarPoseEstimation():
 
         Parameters
         ----------
-        object_namedetection_sub : str
+        object_detection_sub : str
             A json string containing the information of the
             bounding boxes of the detected objects
         pc_sub : PointCloud2
@@ -109,13 +113,18 @@ class PlanarPoseEstimation():
 
         self.pose_array.header.frame_id = self.frame_id
 
-        detected_object = json.loads(object_namedetection_sub.data)
+        detected_object = json.loads(object_detection_sub.data)
         pose_array_msg = []
-        for object_name, bbox in detected_object.items():
+        for i, [object_name, bbox] in enumerate(detected_object.items()):
+            if self.config.hold_prev_vals:
+                self.object_pose_timer[object_name] = time()
             if bbox is not None:
                 pose_msg = self.estimate_pose(object_name, bbox, pc_sub)
                 if pose_msg is not None:
                     pose_array_msg.append(pose_msg)
+                else:
+                    if self.config.hold_prev_vals and time() - self.object_pose_timer[object_name] > self.config.hold_period:  # noqa: E501
+                        pose_array_msg.append(self.pose_array.poses[i])
 
         if self.viz_pose:
             cv2.imshow('Pose', self.viz_frame)
@@ -123,7 +132,7 @@ class PlanarPoseEstimation():
 
         self.pose_array.poses = pose_array_msg
 
-        self.obj_pose_msg = json.dumps(self.object_namepose_info)
+        self.obj_pose_msg = json.dumps(self.object_pose_info)
         self.pose_info_pub.publish(self.obj_pose_msg)
         self.pose_array.header.stamp = rospy.Time.now()
         self.pose_array_pub.publish(self.pose_array)
@@ -172,8 +181,8 @@ class PlanarPoseEstimation():
                 ):
                 # If any point returns nan, return
                 if np.any(np.isnan(dt)):
-                    if object_name in self.object_namepose_info.keys():
-                        del self.object_namepose_info[object_name]
+                    if object_name in self.object_pose_info.keys():
+                        del self.object_pose_info[object_name]
                     rospy.loginfo('No corresponding 3D point found')
                     return
                 else:
@@ -229,7 +238,7 @@ class PlanarPoseEstimation():
         pose_msg.orientation.z = qz
         pose_msg.orientation.w = qw
 
-        self.object_namepose_info[object_name] = {
+        self.object_pose_info[object_name] = {
                 'position': c_3D.tolist(),
                 'orientation': [qx, qy, qz, qw]
             }

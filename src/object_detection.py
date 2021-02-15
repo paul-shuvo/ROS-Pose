@@ -4,7 +4,7 @@
 from os.path import dirname, abspath, join
 from os import listdir, chdir
 import numpy as np
-import time
+from time import time
 import cv2
 import json
 # ROS imports
@@ -16,6 +16,8 @@ from utils import shrink_bbox, draw_angled_text
 # Change directory to the file directory
 dir_path = dirname(abspath(__file__))
 chdir(dir_path)
+
+# TODO: check hold functionality for multiple objects
 
 
 class ObjectDetection():
@@ -32,7 +34,7 @@ class ObjectDetection():
             them in original format, by default False
         """
         self.config = config
-        self.to_gray = to_gray
+        self.to_gray = config.to_gray
         self.detector_descriptor = config.detector_descriptor
         self.matcher = config.matcher
 
@@ -43,9 +45,12 @@ class ObjectDetection():
         # descriptors, and dimension, for object detection.
         self.query_object_features = {}
 
+        if self.config.hold_prev_vals:
+            self.object_timer = {}
+
         # Retrieves all the image feature info needed
         # for each of the object for detection
-        self.extract_object_feat(self.config.objects, self.config.object_path)
+        self.extract_object_info(self.config.objects, self.config.object_path)
 
         # Set frame rate
         self.frame_rate = 2
@@ -73,7 +78,7 @@ class ObjectDetection():
                 )
             r.sleep()
 
-    def extract_object_feat(self, objects, obj_path: str):
+    def extract_object_info(self, objects, obj_path: str):
         """
         Extracts all the information and features needed for
         object detection.
@@ -102,6 +107,10 @@ class ObjectDetection():
 
         for im_file in image_files:
             object_name = im_file.split('/')[-1].split('.')[0]
+
+            if self.config.hold_prev_vals:
+                self.object_timer[object_name] = time()
+
             try:
                 object_im = cv2.imread(im_file)
                 h, w = object_im.shape[0:2]
@@ -142,9 +151,9 @@ class ObjectDetection():
             rospy.loginfo('invalid image received')
             return
 
-        time_elapsed = time.time() - self.prev
+        time_elapsed = time() - self.prev
         if time_elapsed > 1. / self.frame_rate:
-            self.prev = time.time()
+            self.prev = time()
             for object_name, feat in self.query_object_features.items():
                 self.detect(object_name, feat, image)
 
@@ -155,6 +164,31 @@ class ObjectDetection():
             if self.config.show_image:
                 cv2.imshow('Detected Objects', self.viz_frame)
                 cv2.waitKey(10)
+
+    def annotate_frame(self, viz_frame, dst, object_name):
+        viz_frame = cv2.polylines(
+                                    viz_frame,
+                                    [dst],
+                                    True,
+                                    255,
+                                    1,
+                                    cv2.LINE_AA
+                                )
+
+        dst = np.squeeze(dst, axis=1)
+        tc = (dst[3] + dst[0])/2
+        tc = (tc + dst[0])/2
+
+        text_loc = np.array([tc[0], tc[1] - 20], dtype=np.int16)
+        base, tangent = dst[3] - dst[0]
+        text_angle = np.arctan2(-tangent, base)*180/np.pi
+        viz_frame = draw_angled_text(
+                            object_name,
+                            text_loc,
+                            text_angle,
+                            viz_frame
+                        )
+        return viz_frame
 
     def detect(
                 self,
@@ -214,46 +248,36 @@ class ObjectDetection():
             # update the location of the object in the image
             # converted to list as ndarray object is not json serializable
             self.obj_boundary_info[object_name] = np.squeeze(dst, axis=1).tolist()  # noqa: E501
+
+            if self.config.hold_prev_vals:
+                self.object_timer[object_name] = time()
+
             if show_image:
-                if self.to_gray:
-                    # sensor_rgb = cv2.polylines(sensor_rgb, [dst] ,True,255,1, cv2.LINE_AA)  # noqa: E501
-                    self.viz_frame = cv2.polylines(
-                                        self.viz_frame,
-                                        [dst],
-                                        True,
-                                        255,
-                                        1,
-                                        cv2.LINE_AA
-                                    )
-                else:
-                    # sensor_rgb = cv2.polylines(sensor_image, [dst] ,True,255,1, cv2.LINE_AA)  # noqa: E501
-                    self.viz_frame = cv2.polylines(
-                                        self.viz_frame,
-                                        [dst],
-                                        True,
-                                        255,
-                                        1,
-                                        cv2.LINE_AA
-                                    )
+                # sensor_rgb = cv2.polylines(sensor_rgb, [dst] ,True,255,1, cv2.LINE_AA)  # noqa: E501
+                self.viz_frame = self.annotate_frame(
+                                            self.viz_frame,
+                                            dst,
+                                            object_name
+                                        )
 
-                dst = np.squeeze(dst, axis=1)
-                tc = (dst[3] + dst[0])/2
-                tc = (tc + dst[0])/2
-
-                text_loc = np.array([tc[0], tc[1] - 20], dtype=np.int16)
-                base, tangent = dst[3] - dst[0]
-                text_angle = np.arctan2(-tangent, base)*180/np.pi
-                self.viz_frame = draw_angled_text(
-                                    object_name,
-                                    text_loc,
-                                    text_angle,
-                                    self.viz_frame
-                                )
-                # self.viz_frame = bg
         else:
-            # Set None if the object isn't detected
-            self.obj_boundary_info[object_name] = None
-            rospy.loginfo("Not enough matches are found - {}/{}".format(len(good), MIN_MATCH_COUNT))  # noqa: E501
+            if self.config.hold_prev_vals:
+                if time() - self.object_timer[object_name] > self.config.hold_period:  # noqa: E501
+                    self.obj_boundary_info[object_name] = None
+                else:
+                    if self.config.show_image and object_name in self.obj_boundary_info.keys():  # noqa: E501
+                        self.viz_frame = self.annotate_frame(
+                                            self.viz_frame,
+                                            np.expand_dims(
+                                                np.array(self.obj_boundary_info[object_name], dtype=np.int32),  # noqa: E501
+                                                axis=1
+                                            ),
+                                            object_name
+                                        )
+            else:
+                # Set None if the object isn't detected
+                self.obj_boundary_info[object_name] = None
+                rospy.loginfo("Not enough matches are found - {}/{}".format(len(good), MIN_MATCH_COUNT))  # noqa: E501
 
 
 if __name__ == '__main__':
