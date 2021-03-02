@@ -49,7 +49,7 @@ class PlanarPoseEstimation():
         # as `PoseArray`.
         self.pose_info_pub = rospy.Publisher('/object_pose_info',
                                              String, queue_size=10)
-        self.pose_array_pub = rospy.Publisher('/object_namepose_array',
+        self.pose_array_pub = rospy.Publisher('/object_pose_array',
                                               PoseArray, queue_size=10)
 
         self.object_pose_info = {}

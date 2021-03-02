@@ -7,6 +7,7 @@ import numpy as np
 from time import time
 import cv2
 import json
+import message_filters
 # ROS imports
 import rospy
 from std_msgs.msg import String
@@ -67,16 +68,14 @@ class ObjectDetection():
                                     String,
                                     queue_size=10
                                 )
-
-        # Starts the subscriber
-        r = rospy.Rate(self.frame_rate)
-        while not rospy.is_shutdown():
-            rospy.Subscriber(
-                    self.config.image_sub['topic'],
-                    self.config.image_sub['type'],
-                    self.callback
-                )
-            r.sleep()
+        image_sub = message_filters.Subscriber(self.config.image_sub['topic'],
+                    self.config.image_sub['type'])
+        ts = message_filters.ApproximateTimeSynchronizer(
+            [image_sub], 10, 1, allow_headerless=True
+        )  # Changed code
+        ts.registerCallback(self.callback)
+        # spin
+        rospy.spin()
 
     def extract_object_info(self, objects, obj_path: str):
         """

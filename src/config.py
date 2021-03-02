@@ -46,7 +46,7 @@ object_path = 'objects'
 # Name of the objects corresponding to
 # the files name without the extension
 # e.g. book-1.jpg corresponds to book-1
-objects = ['book-1']
+objects = ['book-2', 'book-3']
 
 # Minimum match required for an object to be considered detected
 min_match_count = 15
@@ -62,7 +62,7 @@ matcher_kwargs = {'k': 2}
 
 # Visualize the detected objects,
 # if set to True
-show_image = True
+show_image = False
 
 # Visualize the pose of the objects,
 # if set to True
